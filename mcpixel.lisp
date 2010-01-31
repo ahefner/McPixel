@@ -1,6 +1,7 @@
 (cl:defpackage :mcpixel
   (:use :clim-lisp :clim)
-  (:shadow :frame :frame-p :frame-name))
+  (:shadow :frame :frame-p :frame-name)
+  (:export #:run #:mcpixel))
 
 (in-package :mcpixel)
 
@@ -745,3 +746,11 @@
     (file-error (c)
       (princ c))))
 
+;;;; 
+
+(defun run ()
+  (funcall #+clim-mp #'clim-sys:make-process #-clim-mp #'funcall
+           (lambda ()
+             (run-frame-top-level
+              (make-application-frame 'mcpixel 
+                                      :pretty-name "McPixel")))))
