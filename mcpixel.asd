@@ -4,6 +4,6 @@
     :version "1"
     :author "Andy Hefner <ahefner@gmail.com>"
     :license "MIT-style license"
-    :depends-on (:mcclim :alexandria)
+    :depends-on (:mcclim :alexandria :skippy)
     :serial t
     :components ((:file "mcpixel")))

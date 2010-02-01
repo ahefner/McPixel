@@ -5,6 +5,13 @@
 
 (in-package :mcpixel)
 
+(defun run ()
+  (funcall #+clim-mp #'clim-sys:make-process #-clim-mp #'funcall
+           (lambda ()
+             (run-frame-top-level
+              (make-application-frame 'mcpixel 
+                                      :pretty-name "McPixel")))))
+
 ;;;; FIXME: This program would be improved by proper use of accept
 ;;;; methods. Currently it often requires the user to point with the
 ;;;; mouse, even where it seems reasonable to enter text.
@@ -323,7 +330,7 @@
   (redisplay-palette))
 
 (define-mcpixel-command (com-set-origin :name t)
-    ((x 'integer) (y 'integer))
+    ((x 'integer :prompt "x") (y 'integer :prompt "y"))
   (when (curframe)
     (setf (frame-ox (curframe)) x
           (frame-oy (curframe)) y)
@@ -638,6 +645,8 @@
   (make-pattern (doublesize (frame-pattern frame)) (palette *application-frame*)))
 
 (defun cached-frame-image (frame)
+  (when (> (hash-table-count *pattern-cache*) 1000)
+    (clrhash *pattern-cache*))
   (or (gethash (copy-matrix (frame-pattern frame)) *pattern-cache*)
       (setf (gethash (frame-pattern frame) *pattern-cache*)
             (frame->clim-pattern frame))))
@@ -746,11 +755,67 @@
     (file-error (c)
       (princ c))))
 
-;;;; 
+;;;; GIF export
 
-(defun run ()
-  (funcall #+clim-mp #'clim-sys:make-process #-clim-mp #'funcall
-           (lambda ()
-             (run-frame-top-level
-              (make-application-frame 'mcpixel 
-                                      :pretty-name "McPixel")))))
+(defun seqprop (anim reducer fn1 fn2)
+  (reduce reducer (anim-seq anim) :key (lambda (key) (- (funcall fn1 (second key)) (funcall fn2 (second key))))))
+
+(defun matrix-to-ub8-vector (matrix)
+  (let* ((size (reduce #'* (array-dimensions matrix)))
+         (vector (make-array size :element-type '(unsigned-byte 8))))
+    (prog1 vector
+      (dotimes (i size) (setf (aref vector i) (row-major-aref matrix i))))))
+
+(defun export-gif (anim filename)
+  (let* ((x0 (seqprop anim #'min (constantly 0) #'frame-ox))
+         (x1 (seqprop anim #'max #'frame-width  #'frame-ox))
+         (y0 (seqprop anim #'min (constantly 0) #'frame-oy))
+         (y1 (seqprop anim #'max #'frame-height #'frame-oy))
+         (width (- x1 x0))
+         (height (- y1 y0))
+         
+         (color-table (skippy:make-color-table))
+         (data-stream (skippy:make-data-stream 
+                       :loopingp t
+                       :width width :height height
+                       :color-table color-table)))
+    (dolist (color (palette *application-frame*))
+      (skippy:add-color (if (eql color +transparent-ink+)
+                            (skippy:rgb-color 255 0 255)
+                            (apply #'skippy:rgb-color 
+                                   (mapcar (lambda (x) (round (* x 255)))
+                                           (multiple-value-list (color-rgb color)))))
+                        color-table))
+    (loop for (time frame) in (anim-seq anim) do
+          (skippy:add-image
+           (skippy:make-image :width (frame-width frame)
+                              :height (frame-height frame)
+                              :data-stream data-stream
+                              :left-position (+ x0 (frame-ox frame))
+                              :top-position (+ y0 (frame-oy frame))
+                              :image-data (matrix-to-ub8-vector (frame-pattern frame))
+                              ;; Hack. Rates aren't coming out like I expect when I view the image in Firefox.
+                              :delay-time (max 2 (round (* time (/ 100 (animation-rate *application-frame*)))))
+                              :disposal-method :restore-background
+                              :transparency-index 0)
+           data-stream))
+    (skippy:output-data-stream data-stream (pathname filename))))
+
+(define-mcpixel-command (com-export-gif :name t)
+    ;; Disabling prompting for the animation with reasonable default
+    ;; because McCLIM's command processor sucks.
+    (#+NIL (animation 'anim :prompt "animation" :default (current-anim *application-frame*))
+     (filename 'pathname))
+  (let ((animation (current-anim *application-frame*)))
+    (cond
+      ((null animation)
+       (format t "~&Need an animation to export.~%"))
+      (t 
+       (when (filename *application-frame*)
+         (setf filename (merge-pathnames (pathname filename)
+                                         (make-pathname 
+                                          :type "gif"
+                                          :defaults (pathname (filename *application-frame*))))))
+       (export-gif animation filename)))))
+     
+  
