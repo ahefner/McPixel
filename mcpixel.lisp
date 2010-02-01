@@ -747,7 +747,8 @@
   (handler-case
       (progn 
         (apply-state-form *application-frame* (file filename))
-        (setf (fr (find-editor)) (current-frame *application-frame*))
+        (setf (fr (find-editor)) (current-frame *application-frame*)
+              (filename *application-frame*) filename)
         (redisplay-animation)
         (redisplay-frames-list)
         (repaint-editor)
@@ -791,10 +792,9 @@
            (skippy:make-image :width (frame-width frame)
                               :height (frame-height frame)
                               :data-stream data-stream
-                              :left-position (+ x0 (frame-ox frame))
-                              :top-position (+ y0 (frame-oy frame))
+                              :left-position (- width (frame-ox frame) (- x0))
+                              :top-position  (- height (frame-oy frame) (- y0))
                               :image-data (matrix-to-ub8-vector (frame-pattern frame))
-                              ;; Hack. Rates aren't coming out like I expect when I view the image in Firefox.
                               :delay-time (max 2 (round (* time (/ 100 (animation-rate *application-frame*)))))
                               :disposal-method :restore-background
                               :transparency-index 0)
