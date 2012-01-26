@@ -9,7 +9,7 @@
   (funcall #+clim-mp #'clim-sys:make-process #-clim-mp #'funcall
            (lambda ()
              (run-frame-top-level
-              (make-application-frame 'mcpixel 
+              (make-application-frame 'mcpixel
                                       :pretty-name "McPixel")))))
 
 ;;;; FIXME: This program would be improved by proper use of accept
@@ -45,7 +45,7 @@
     (cond
       ((eql design +transparent-ink+)
        (draw-rectangle* pane x0 y0 (+ x0 zoom -1) (+ y0 zoom -1) :filled nil :ink +gray90+))
-      (t 
+      (t
        (draw-rectangle* pane x0 y0 (+ x0 zoom -1) (+ y0 zoom -1) :filled t :ink design)))
     (when (and (eql x (frame-ox frame))
                (eql y (frame-oy frame)))
@@ -54,7 +54,7 @@
                   :ink +flipping-ink+))))
 
 
-(defmethod handle-repaint ((pane paint-pane) region) 
+(defmethod handle-repaint ((pane paint-pane) region)
   ;;(draw-design pane (compose-in (pane-background pane) region))
   (with-bounding-rectangle* (x0 y0 x1 y1) region
     (draw-rectangle* pane x0 y0 x1 y1 :ink (pane-background pane)))
@@ -65,7 +65,7 @@
            (width (frame-width frame))
            (height (frame-height frame)))
       (loop for y from 0 below height do
-            (loop for x from 0 below width 
+            (loop for x from 0 below width
                   as color-index = (aref pattern y x)
                   as design = (if (< color-index (length palette))
                                   (elt palette color-index)
@@ -95,9 +95,9 @@
 
                   (when (and (< x width) (< y height) (>= x 0) (>= y 0))
                     (let ((bcol (aref brush-pat by bx)))
-                      (unless (zerop bcol) 
+                      (unless (zerop bcol)
                         (incf bcol (1- color))
-                        (setf (aref pattern y x) bcol)                      
+                        (setf (aref pattern y x) bcol)
                         (fill-pixel pane (fr pane) x y (or (nth bcol (palette *application-frame*)) +transparent-ink+))))))))))
 
 (defmethod handle-event ((pane paint-pane) (event pointer-motion-event))
@@ -153,7 +153,7 @@
    (current-anim   :accessor current-anim
                    :initform nil
                    :initarg :current-seq)
-   
+
    (current-frame :accessor current-frame
                   :initform nil
                   :initarg :current-frame))
@@ -162,21 +162,21 @@
    (palette     :application-pane :display-function 'display-palette :display-time t :max-height 37 :min-height 37 :height 37)
    (frames-list :application-pane :display-function 'display-frames  :display-time t :end-of-line-action :allow)
    (sequence-list :application-pane :display-function 'display-sequence :display-time nil :end-of-line-action :allow)
-   (editor  (make-pane 'paint-pane))  
+   (editor  (make-pane 'paint-pane))
    (brush-editor (make-pane 'paint-pane
                             :fr (make-default-brush)
-                            :zoom 20 
+                            :zoom 20
                             :drawbrush (make-default-brush)))
    (hue-slider (make-pane 'hue-slider))
    (intensity-slider (make-pane 'intensity-slider))
    (saturation-slider (make-pane 'saturation-slider))
    (animation-preview (make-pane 'animation-preview :max-width 300))
    (interactor :interactor-pane))
-  
+
   (:layouts
    (default
     (vertically (:width 1300 :height 900)
-      palette      
+      palette
       (horizontally ()
         (3/4 (scrolling () editor))
         (1/4 (vertically ()
@@ -192,7 +192,7 @@
                saturation-slider
                (labelling (:label "Brush Editor")
                  brush-editor))))
-      (200 (horizontally () 
+      (200 (horizontally ()
              (scrolling () interactor)
              animation-preview))))))
 
@@ -257,7 +257,7 @@
          (width  (max 100 (* (zoom ed) (frame-width  frame))))
          (height (max 100 (* (zoom ed) (frame-height frame)))))
     (change-space-requirements ed
-                               :min-width width :width width 
+                               :min-width width :width width
                                :min-height height :height height)))
 
 (define-mcpixel-command (com-select-frame :name t)
@@ -274,13 +274,13 @@
   (com-select-frame frame))
 
 (define-mcpixel-command (com-new-frame :name t)
-    ((name 'string :prompt "Name") 
+    ((name 'string :prompt "Name")
      (width 'integer :prompt "Width"
             :default (if (curframe) (frame-width (curframe)) 32))
      (height 'integer :prompt "Height"
              :default (if (curframe) (frame-height (curframe)) 32)))
   (let ((new (make-frame :pattern (make-array (list height width) :initial-element 0)
-                         :ox (if (curframe) 
+                         :ox (if (curframe)
                                  (min (frame-ox (curframe)) (1- width))
                                  (floor width 2))
                          :oy (if (curframe)
@@ -318,7 +318,7 @@
     ((zoom 'integer))
   (cond
     ((< zoom 6) (format t "~&Zoom must be at least 6 pixels.~%"))
-    (t 
+    (t
      (setf (zoom (find-pane-named *application-frame* 'editor)) zoom)
      (when (current-frame *application-frame*)
        (resize-editor-for-frame (current-frame *application-frame*)))
@@ -351,7 +351,7 @@
 
 (define-mcpixel-command (com-save-brush :name t)
     ((name 'string))
-  (setf (gethash name *brushes*) (clone-frame (get-current-brush))))  
+  (setf (gethash name *brushes*) (clone-frame (get-current-brush))))
 
 ;;; This handling of brushes by name is utterly un-CLIM-like, and
 ;;; usability suffers, but I just don't feel like mucking with accept
@@ -388,24 +388,24 @@
 (defclass colorslider (basic-gadget) ())
 
 (defmethod compose-space ((gadget colorslider) &key &allow-other-keys)
-  (make-space-requirement 
+  (make-space-requirement
    :min-height 24 :height 24 :max-height 24
    :min-width 256 :width 256 :max-width 256))
 
 (defclass hue-slider (colorslider) ())
 
 (defun current-color/ink ()
-  (values (current-color *application-frame*) 
+  (values (current-color *application-frame*)
           (elt (palette *application-frame*) (current-color *application-frame*))))
 
-(defmethod handle-repaint ((gadget hue-slider) region)  
+(defmethod handle-repaint ((gadget hue-slider) region)
   (let ((ink (elt (palette *application-frame*) (current-color *application-frame*)))
         (y (bounding-rectangle-max-y region)))
     (cond
       ((eql ink +transparent-ink+)
        (draw-rectangle* gadget 0 0 256 y :ink (pane-background gadget)))
       (t
-       (loop with step = 1 
+       (loop with step = 1
              with height = (bounding-rectangle-max-y region)
              for hue from 0 below 256 by step
              as design = (make-ihs-color 1.5 (/ hue 255.0) 1.0)
@@ -427,13 +427,13 @@
   (redisplay-palette)
   (repaint-editor))
 
-;;; Applying the OAOTM principle:    
-    
+;;; Applying the OAOTM principle:
+
 (defclass intensity-slider (colorslider) ())
 
 (defparameter *intensity-scale* 4.0)
 
-(defmethod handle-repaint ((gadget intensity-slider) region)  
+(defmethod handle-repaint ((gadget intensity-slider) region)
   (let ((ink (elt (palette *application-frame*) (current-color *application-frame*)))
         (scale *intensity-scale*)
         (y (bounding-rectangle-max-y region)))
@@ -457,7 +457,7 @@
 
 (defparameter *saturation-scale* 1.0)
 
-(defmethod handle-repaint ((gadget saturation-slider) region)  
+(defmethod handle-repaint ((gadget saturation-slider) region)
   (let ((ink (elt (palette *application-frame*) (current-color *application-frame*)))
         (scale *saturation-scale*)
         (y (bounding-rectangle-max-y region)))
@@ -657,7 +657,7 @@
     (with-bounding-rectangle* (x0 y0 x1 y1) (sheet-region pane)
       (when (and (not stack) (current-anim *application-frame*))
         (setf (animating-stack *application-frame*)
-              (map 'list #'copy-list (anim-seq (current-anim *application-frame*))))        
+              (map 'list #'copy-list (anim-seq (current-anim *application-frame*))))
         (setf stack (animating-stack *application-frame*)))
       (when stack
         (let ((frame (second (first stack))))
@@ -745,7 +745,7 @@
 (define-mcpixel-command (com-load :name t)
     ((filename 'pathname))
   (handler-case
-      (progn 
+      (progn
         (apply-state-form *application-frame* (file filename))
         (setf (fr (find-editor)) (current-frame *application-frame*)
               (filename *application-frame*) filename)
@@ -774,16 +774,16 @@
          (y1 (seqprop anim #'max #'frame-height #'frame-oy))
          (width (- x1 x0))
          (height (- y1 y0))
-         
+
          (color-table (skippy:make-color-table))
-         (data-stream (skippy:make-data-stream 
+         (data-stream (skippy:make-data-stream
                        :loopingp t
                        :width width :height height
                        :color-table color-table)))
     (dolist (color (palette *application-frame*))
       (skippy:add-color (if (eql color +transparent-ink+)
                             (skippy:rgb-color 255 0 255)
-                            (apply #'skippy:rgb-color 
+                            (apply #'skippy:rgb-color
                                    (mapcar (lambda (x) (round (* x 255)))
                                            (multiple-value-list (color-rgb color)))))
                         color-table))
@@ -810,12 +810,12 @@
     (cond
       ((null animation)
        (format t "~&Need an animation to export.~%"))
-      (t 
+      (t
        (when (filename *application-frame*)
          (setf filename (merge-pathnames (pathname filename)
-                                         (make-pathname 
+                                         (make-pathname
                                           :type "gif"
                                           :defaults (pathname (filename *application-frame*))))))
        (export-gif animation filename)))))
-     
-  
+
+
